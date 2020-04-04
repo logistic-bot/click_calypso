@@ -35,10 +35,18 @@ from explorer import Explorer
     help="Path to repository.",
 )
 @click.option(
-    "--user", type=str, envvar="CALYPSO_USER", help="Username. Will prompt if not provided.",
+    "--user",
+    type=str,
+    envvar="CALYPSO_USER",
+    help="Username. Will prompt if not provided.",
+    prompt=True,
 )
 @click.option(
-    "--email", type=str, envvar="CALYPSO_EMAIL", help="Email. Will prompt if not provided.",
+    "--email",
+    type=str,
+    envvar="CALYPSO_EMAIL",
+    help="Email. Will prompt if not provided.",
+    prompt=True,
 )
 @click.pass_context
 def cli(context, repo, user, email):
