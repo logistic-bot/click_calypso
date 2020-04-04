@@ -1,5 +1,5 @@
 run:
-	python main.py
+	python main.py --user test --email test@example.com read
 style:
 	@black *.py -l 100
 	@pylint -j 4 -f colorized *.py --exit-zero
