@@ -17,6 +17,7 @@ Nameing convention: all names wich start with CALYPSO_ are global.
 
 from pathlib import Path
 from pprint import pprint as print  # pylint:disable=W0622
+from pprint import pformat
 
 import click
 
@@ -84,8 +85,12 @@ def cli(context, repo, user, email):
 @cli.command("list")  # avoid redefining builtin list
 @click.pass_context
 @click.option("--name", type=bool, help="Show node names", default=False, is_flag=True)
-@click.option("--no-uuid", type=bool, help="Show node uuids", default=True, is_flag=True)
-@click.option("--separator", type=str, help="Separator between atributes", default=" - ")
+@click.option(
+    "--no-uuid", type=bool, help="Show node uuids", default=True, is_flag=True
+)
+@click.option(
+    "--separator", type=str, help="Separator between atributes", default=" - "
+)
 @click.option(
     "--format-string",
     type=str,
@@ -121,9 +126,35 @@ def list_all(context, name, no_uuid, separator, format_string):
 
 
 @cli.command()
-def read():
-    """Read a node or a key from a node."""
-    click.echo("reading node or key from specified node...")
+@click.argument("node", type=str, envvar="CALYPSO_NODE")
+@click.argument("key", type=str, envvar="CALYPSO_KEY", default=None, required=False)
+@click.option(
+    "--indent", type=int, default=2, help="Indentation to use for showing nested values"
+)
+@click.option("--width", type=int, default=80, help="Max line width")
+@click.option(
+    "--no-sort-keys",
+    type=bool,
+    default=False,
+    help="Do not sort keys in output",
+    is_flag=True,
+)
+@click.pass_obj
+def read(context, node, key, indent, width, no_sort_keys):
+    """Either reads the whole NODE or the KEY from the NODE.
+
+    NODE is the uuid of the node to read from. Example: 353430d7-a043-4c2a-bd1c-57d816a65787
+
+    KEY is the name of a top-level key or a path relative to the NODE root in
+    the form `creator/email`. A trailing or leading `/` is also accepted, but
+    considered non-standard. Using multiple `/` in between keys
+    (`creator////email`) also works, but is considered ugly.
+
+    """
+    sort = not no_sort_keys
+    explorer = context["explorer"]
+    explorer.go_to(node, key)
+    click.echo(pformat(explorer.view(), indent=indent, width=width, sort_dicts=sort))
 
 
 @cli.command()
