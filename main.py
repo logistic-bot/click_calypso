@@ -25,15 +25,6 @@ from user import User
 from explorer import Explorer
 
 
-def create_dir_if_not_exists(path):
-    """
-    path: Path
-
-    Create the directory at <path> if it doesn't exist
-    """
-    path.mkdir(exist_ok=True)
-
-
 @click.group()
 @click.option(
     "--repo",
@@ -118,7 +109,6 @@ def list_all(context, name, no_uuid, separator, format_string):
 
     # run
     for node in nodes:
-        print(format_string)
         click.echo(format_string.format(node=node))
 
 
