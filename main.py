@@ -15,11 +15,11 @@ This is where everything is launched.
 Nameing convention: all names wich start with CALYPSO_ are global.
 """
 
+from pathlib import Path
+from pprint import pprint as print  # pylint:disable=W0622
+
 import click
 
-from pathlib import Path
-from sys import argv
-from pprint import pprint as print
 
 from user import User
 from explorer import Explorer
@@ -44,16 +44,10 @@ def create_dir_if_not_exists(path):
     help="Path to repository.",
 )
 @click.option(
-    "--user",
-    type=str,
-    envvar="CALYPSO_USER",
-    help="Username. Will prompt if not provided.",
+    "--user", type=str, envvar="CALYPSO_USER", help="Username. Will prompt if not provided.",
 )
 @click.option(
-    "--email",
-    type=str,
-    envvar="CALYPSO_EMAIL",
-    help="Email. Will prompt if not provided.",
+    "--email", type=str, envvar="CALYPSO_EMAIL", help="Email. Will prompt if not provided.",
 )
 @click.pass_context
 def cli(context, repo, user, email):
@@ -88,22 +82,18 @@ def cli(context, repo, user, email):
     context.obj["explorer"] = explorer
 
 
-@cli.command()
+@cli.command("list")  # avoid redefining builtin list
 @click.pass_context
 @click.option("--name", type=bool, help="Show node names", default=False, is_flag=True)
-@click.option(
-    "--no-uuid", type=bool, help="Show node uuids", default=True, is_flag=True
-)
-@click.option(
-    "--separator", type=str, help="Separator between atributes", default=" - "
-)
+@click.option("--no-uuid", type=bool, help="Show node uuids", default=True, is_flag=True)
+@click.option("--separator", type=str, help="Separator between atributes", default=" - ")
 @click.option(
     "--format-string",
     type=str,
     help="Format string. If specified, --name, --uuid and --separator are ignored. NOT IMPLEMENTED",
     default=None,
 )
-def list(context, name, no_uuid, separator, format_string):
+def list_all(context, name, no_uuid, separator, format_string):
     """List all the nodes."""
     # setup vars
     explorer = context.obj["explorer"]
@@ -118,10 +108,10 @@ def list(context, name, no_uuid, separator, format_string):
             formats.append("{node.data[name]}")
 
         format_string = ""
-        for f in formats:
-            format_string += f
+        for formet_str in formats:
+            format_string += formet_str
 
-            if not formats.index(f) == len(formats) - 1:
+            if not formats.index(formet_str) == len(formats) - 1:
                 format_string += separator
     else:
         raise NotImplementedError("Sorry about that")
@@ -161,4 +151,4 @@ def version():
 
 
 if __name__ == "__main__":
-    cli()
+    cli()  # pylint:disable=E1120

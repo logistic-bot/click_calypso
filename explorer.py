@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Implements Explorer"""
 
 from pathlib import Path
 from user import User
@@ -6,6 +7,10 @@ from node import Node
 
 
 class Explorer:
+    """
+    Functions for interacting with a Calypso repository
+    """
+
     def __init__(self, repo_path, user):
         assert isinstance(repo_path, Path)
         assert isinstance(user, User)
@@ -18,6 +23,10 @@ class Explorer:
         return self.__dict__.__repr__()
 
     def list_all(self):
+        """
+        Returns a list of all nodes in the repository,
+        by creating a node.Node object for each
+        """
         all_node_names = []
         all_nodes = []
 

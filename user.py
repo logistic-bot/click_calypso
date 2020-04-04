@@ -13,9 +13,7 @@ class User:
         self.user_dir = user_dir
         self.pretty_name = name
 
-        self.uuid = sha1(
-            "{}{}".format(self.name, self.email).encode("utf-8")
-        ).hexdigest()
+        self.uuid = sha1("{}{}".format(self.name, self.email).encode("utf-8")).hexdigest()
 
         self.datapath = user_dir / "{}.json".format(self.uuid)
 
