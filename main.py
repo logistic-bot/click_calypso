@@ -129,9 +129,10 @@ def list_all(context, name, no_uuid, separator, format_string):
 @click.argument("node", type=str, envvar="CALYPSO_NODE")
 @click.argument("key", type=str, envvar="CALYPSO_KEY", default=None, required=False)
 @click.option(
-    "--indent", type=int, default=2, help="Indentation to use for showing nested values"
+    "--indent", type=int, default=1, help="Indentation to use for showing nested values"
 )
 @click.option("--width", type=int, default=80, help="Max line width")
+@click.option("--depth", type=int, default=None, help="Max depth to print")
 @click.option(
     "--no-sort-keys",
     type=bool,
@@ -140,10 +141,11 @@ def list_all(context, name, no_uuid, separator, format_string):
     is_flag=True,
 )
 @click.pass_obj
-def read(context, node, key, indent, width, no_sort_keys):
+def read(context, node, key, indent, width, no_sort_keys, depth):
     """Either reads the whole NODE or the KEY from the NODE.
 
-    NODE is the uuid of the node to read from. Example: 353430d7-a043-4c2a-bd1c-57d816a65787
+    NODE is the uuid of the node to read from. Example:
+    353430d7-a043-4c2a-bd1c-57d816a65787
 
     KEY is the name of a top-level key or a path relative to the NODE root in
     the form `creator/email`. A trailing or leading `/` is also accepted, but
@@ -154,7 +156,11 @@ def read(context, node, key, indent, width, no_sort_keys):
     sort = not no_sort_keys
     explorer = context["explorer"]
     explorer.go_to(node, key)
-    click.echo(pformat(explorer.view(), indent=indent, width=width, sort_dicts=sort))
+    click.echo(
+        pformat(
+            explorer.view(), indent=indent, width=width, sort_dicts=sort, depth=depth
+        )
+    )
 
 
 @cli.command()
