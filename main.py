@@ -132,13 +132,18 @@ def list_all(context, name, no_uuid, separator, format_string):
     "--indent", type=int, default=1, help="Indentation to use for showing nested values"
 )
 @click.option("--width", type=int, default=80, help="Max line width")
-@click.option("--depth", type=int, default=None, help="Max depth to print")
+@click.option(
+    "--depth",
+    type=int,
+    default=5,
+    help="Max depth to print. Default 5. Set to -1 for infinite.",
+)
 @click.option(
     "--no-sort-keys",
     type=bool,
     default=False,
     help="Do not sort keys in output",
-    is_flag=True,
+    is_flag=True,  # pylint:disable=R0913
 )  # pylint:disable=R0913
 @click.pass_obj
 def read(context, node, key, indent, width, no_sort_keys, depth):
@@ -155,7 +160,12 @@ def read(context, node, key, indent, width, no_sort_keys, depth):
     """
     sort = not no_sort_keys
     explorer = context["explorer"]
+
+    if depth == -1:
+        depth = None
+
     explorer.go_to(node, key)
+
     click.echo(
         pformat(
             explorer.get_path_data(),
