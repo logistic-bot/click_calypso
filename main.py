@@ -182,7 +182,7 @@ def version():
     """Prints version and copyright information"""
     click.echo("You are using CALYPSO, originally coded by Khaïs COLIN.")
     click.echo("Copyright: GNU GPL 3.0")
-    click.echo("Calypso v2.1.0 `deciphered`")
+    click.echo("Calypso v2.2.0 `deep`")
 
 
 if __name__ == "__main__":
