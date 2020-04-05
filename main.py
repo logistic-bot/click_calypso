@@ -16,7 +16,7 @@ Nameing convention: all names wich start with CALYPSO_ are global.
 """
 
 from pathlib import Path
-from pprint import pprint as print  # pylint:disable=W0622
+from pprint import pprint as print  # pylint:disable=W0611,W0622 # noqa
 from pprint import pformat
 
 import click
@@ -139,7 +139,7 @@ def list_all(context, name, no_uuid, separator, format_string):
     default=False,
     help="Do not sort keys in output",
     is_flag=True,
-)
+)  # pylint:disable=R0913
 @click.pass_obj
 def read(context, node, key, indent, width, no_sort_keys, depth):
     """Either reads the whole NODE or the KEY from the NODE.
