@@ -25,18 +25,23 @@ class Explorer:
     def __repr__(self):
         return self.__dict__.__repr__()
 
-    def view(self):
-        data = self.get_path_data()
-
-        return data
-
-    def go_to(self, node, key):
+    def go_to(self, node, key=None):
+        """
+        Set the current node to NODE, and if KEY is not None, changes the path
+        relative to the current nodes root using KEY as a path in the form
+        `creator/email`. A trailing or leading `/` is also accepted, but
+        considered non-standard. Using multiple `/` in between keys
+        (`creator////email`) also works, but is considered ugly.
+        """
         self.change_node(node)
 
         if key is not None:
             self.change_path_relative(key)
 
     def get_path_data(self):
+        """
+        Returns a dict of the data from the current node at the current path
+        """
         data = self.current_node.data
 
         for key in self.path:
@@ -45,6 +50,9 @@ class Explorer:
         return data
 
     def possible_keys(self):
+        """
+        Returns a list of the subkeys from the current node at the current path
+        """
         data = self.get_path_data()
         keys = []
 
@@ -55,6 +63,20 @@ class Explorer:
         return keys
 
     def change_path_relative(self, path):
+        """Change the path relative to the curent path, acording to PATH.
+
+        PATH must be in the form `creator/email`. A trailing or leading `/` is
+        also accepted, but considered non-standard. Using multiple `/` in
+        between keys (`creator////email`) also works, but is considered ugly.
+
+        `..` is also accepted, and will go backwards.
+        `.` is also accepted, and will not change the path.
+
+        This can of course be combined, like this:
+        `creator/../creator///email//.` will have the same effect as
+        `creator/email`.
+
+        """
         path_keys = path.split("/")
 
         for path_key in path_keys:

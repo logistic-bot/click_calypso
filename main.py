@@ -158,7 +158,11 @@ def read(context, node, key, indent, width, no_sort_keys, depth):
     explorer.go_to(node, key)
     click.echo(
         pformat(
-            explorer.view(), indent=indent, width=width, sort_dicts=sort, depth=depth
+            explorer.get_path_data(),
+            indent=indent,
+            width=width,
+            sort_dicts=sort,
+            depth=depth,
         )
     )
 
