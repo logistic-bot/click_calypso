@@ -106,8 +106,7 @@ class Explorer:
             else:
                 raise KeyError(
                     "Nodepath {} has no key {}".format(
-                        "{}/{}".format(self.current_node.uuid, self.path),
-                        path_key,
+                        "{}/{}".format(self.current_node.uuid, self.path), path_key,
                     )
                 )
 

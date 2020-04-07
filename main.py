@@ -85,15 +85,9 @@ def cli(context, repo, user, email):
 
 @cli.command("list")  # avoid redefining builtin list
 @click.pass_context
-@click.option(
-    "--name", type=bool, help="Show node names", default=False, is_flag=True
-)
-@click.option(
-    "--no-uuid", type=bool, help="Show node uuids", default=True, is_flag=True
-)
-@click.option(
-    "--separator", type=str, help="Separator between atributes", default=" - "
-)
+@click.option("--name", type=bool, help="Show node names", default=False, is_flag=True)
+@click.option("--no-uuid", type=bool, help="Show node uuids", default=True, is_flag=True)
+@click.option("--separator", type=str, help="Separator between atributes", default=" - ")
 @click.option(
     "--format-string",
     type=str,
@@ -130,21 +124,13 @@ def list_all(context, name, no_uuid, separator, format_string):
 
 @cli.command()
 @click.argument("node", type=str, envvar="CALYPSO_NODE")
-@click.argument(
-    "key", type=str, envvar="CALYPSO_KEY", default=None, required=False
-)
+@click.argument("key", type=str, envvar="CALYPSO_KEY", default=None, required=False)
 @click.option(
-    "--indent",
-    type=int,
-    default=1,
-    help="Indentation to use for showing nested values",
+    "--indent", type=int, default=1, help="Indentation to use for showing nested values",
 )
 @click.option("--width", type=int, default=80, help="Max line width")
 @click.option(
-    "--depth",
-    type=int,
-    default=5,
-    help="Max depth to print. Default 5. Set to -1 for infinite.",
+    "--depth", type=int, default=5, help="Max depth to print. Default 5. Set to -1 for infinite.",
 )
 @click.option(
     "--no-sort-keys",
@@ -175,28 +161,16 @@ def read(context, node, key, indent, width, no_sort_keys, depth):
     explorer.go_to(node, key)
 
     click.echo(
-        pformat(
-            explorer.get_path_data(),
-            indent=indent,
-            width=width,
-            sort_dicts=sort,
-            depth=depth,
-        )
+        pformat(explorer.get_path_data(), indent=indent, width=width, sort_dicts=sort, depth=depth,)
     )
 
 
 @cli.command()
 @click.pass_obj
 @click.argument("node", type=str, envvar="CALYPSO_NODE")
-@click.argument(
-    "key", type=str, envvar="CALYPSO_KEY", default=None, required=False
-)
+@click.argument("key", type=str, envvar="CALYPSO_KEY", default=None, required=False)
 @click.option(
-    "--editor",
-    type=str,
-    envvar="CALYPSO_EDITOR",
-    default="nano",
-    required=False,
+    "--editor", type=str, envvar="CALYPSO_EDITOR", default="nano", required=False,
 )
 def edit(context, node, key, editor):
     """Edits a key in a node."""
@@ -210,14 +184,10 @@ def edit(context, node, key, editor):
     )
 
     with open(filepath, "w") as tmp_file:
-        tmp_file.write(
-            json.dumps(explorer.get_path_data(), indent=2, sort_keys=True)
-        )
+        tmp_file.write(json.dumps(explorer.get_path_data(), indent=2, sort_keys=True))
         tmp_file.flush()
 
-        proc = subprocess.Popen(
-            "{} {}".format(editor, tmp_file.name), shell=True
-        )
+        proc = subprocess.Popen("{} {}".format(editor, tmp_file.name), shell=True)
         proc.communicate()
         proc.wait()
 
