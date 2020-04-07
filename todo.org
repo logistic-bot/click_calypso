@@ -1,6 +1,0 @@
-#+TITLE: Todo
-* TODO Add 'adduser' command
-* TODO add acess information to nodes
-* TODO ask for login if needed
-** TODO list
-[[*TODO add acess information to nodes][add acess information to nodes]]
