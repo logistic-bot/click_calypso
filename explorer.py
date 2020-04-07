@@ -62,6 +62,14 @@ class Explorer:
 
         return keys
 
+    def change_data(self, new_value):
+        pointer = self.current_node.data
+        for key in self.path[:-1]:
+            pointer = pointer[key]
+        pointer[self.path[-1]] = new_value
+
+        self.current_node.save()
+
     def change_path_relative(self, path):
         """Change the path relative to the curent path, acording to PATH.
 
@@ -98,7 +106,8 @@ class Explorer:
             else:
                 raise KeyError(
                     "Nodepath {} has no key {}".format(
-                        "{}/{}".format(self.current_node.uuid, self.path), path_key,
+                        "{}/{}".format(self.current_node.uuid, self.path),
+                        path_key,
                     )
                 )
 

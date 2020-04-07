@@ -19,8 +19,9 @@ from pathlib import Path
 from pprint import pprint as print  # pylint:disable=W0611,W0622 # noqa
 from pprint import pformat
 
+import subprocess
+import json
 import click
-
 
 from user import User
 from explorer import Explorer
@@ -78,13 +79,15 @@ def cli(context, repo, user, email):
 
     # setup context
     context.obj["repo"] = repo
-    context.obj["current_user"] = current_user
+    context.obj["user"] = current_user
     context.obj["explorer"] = explorer
 
 
 @cli.command("list")  # avoid redefining builtin list
 @click.pass_context
-@click.option("--name", type=bool, help="Show node names", default=False, is_flag=True)
+@click.option(
+    "--name", type=bool, help="Show node names", default=False, is_flag=True
+)
 @click.option(
     "--no-uuid", type=bool, help="Show node uuids", default=True, is_flag=True
 )
@@ -127,9 +130,14 @@ def list_all(context, name, no_uuid, separator, format_string):
 
 @cli.command()
 @click.argument("node", type=str, envvar="CALYPSO_NODE")
-@click.argument("key", type=str, envvar="CALYPSO_KEY", default=None, required=False)
+@click.argument(
+    "key", type=str, envvar="CALYPSO_KEY", default=None, required=False
+)
 @click.option(
-    "--indent", type=int, default=1, help="Indentation to use for showing nested values"
+    "--indent",
+    type=int,
+    default=1,
+    help="Indentation to use for showing nested values",
 )
 @click.option("--width", type=int, default=80, help="Max line width")
 @click.option(
@@ -178,9 +186,48 @@ def read(context, node, key, indent, width, no_sort_keys, depth):
 
 
 @cli.command()
-def edit():
+@click.pass_obj
+@click.argument("node", type=str, envvar="CALYPSO_NODE")
+@click.argument(
+    "key", type=str, envvar="CALYPSO_KEY", default=None, required=False
+)
+@click.option(
+    "--editor",
+    type=str,
+    envvar="CALYPSO_EDITOR",
+    default="nano",
+    required=False,
+)
+def edit(context, node, key, editor):
     """Edits a key in a node."""
-    click.echo("editing key from specified node...")
+    explorer = context["explorer"]
+    explorer.go_to(node, key)
+
+    filepath = context[
+        "repo"
+    ] / "DATA-EDIT-IN-PROGRESS-BY-{}-ON-NODE-{}--DO-NOT-DELETE.json".format(
+        context["user"].name, node
+    )
+
+    with open(filepath, "w") as tmp_file:
+        tmp_file.write(
+            json.dumps(explorer.get_path_data(), indent=2, sort_keys=True)
+        )
+        tmp_file.flush()
+
+        proc = subprocess.Popen(
+            "{} {}".format(editor, tmp_file.name), shell=True
+        )
+        proc.communicate()
+        proc.wait()
+
+    with open(filepath, "r") as tmp_file:
+        data = json.load(tmp_file)
+
+        explorer.change_data(data)
+
+    # delete the file
+    filepath.unlink()
 
 
 @cli.command()
