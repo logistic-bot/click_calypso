@@ -16,12 +16,15 @@ Nameing convention: all names wich start with CALYPSO_ are global.
 """
 
 from pathlib import Path
+
 from pprint import pprint as print  # pylint:disable=W0611,W0622 # noqa
 from pprint import pformat
+
 
 import subprocess
 import json
 import click
+import prompt_toolkit
 
 from user import User
 from explorer import Explorer
@@ -201,11 +204,97 @@ def edit(context, node, key, editor):
 
 
 @cli.command()
-def repl():
+@click.pass_context
+def repl(context):
     """
     Starts an interactive read-eval-print loop.
     """
-    click.echo("starting read-eval-print loop...")
+    context.invoke(version)
+    click.echo()
+    click.echo("Type `exit` to quit.")
+
+    def build_prompt(context):
+        formats = []
+        formats.append("\n")
+
+        formats.append("╭─ ")
+
+        try:
+            name = context.obj["explorer"].current_node.data["name"]
+            formats.append("{context.obj[explorer].current_node.data[name]}")
+
+        except KeyError:
+            formats.append("(No name)")
+
+        formats.append(" | ")
+
+        try:
+            uuid = context.obj["explorer"].current_node.uuid
+            if uuid == "":
+                formats.append("(Empty uuid)")
+            else:
+                formats.append("{context.obj[explorer].current_node.uuid}")
+        except KeyError:
+            formats.append("(No uuid)")
+
+        formats.append("\n")
+        formats.append("╰─❯ ")
+
+        format_string = "".join(formats)
+
+        return format_string.format(context=context)
+
+    def build_right_prompt(context):
+        formats = []
+
+        formats.append("\n")
+
+        formats.append(" ")
+        formats.append("{context.obj[user].name}")
+
+        formats.append(" | ")
+        formats.append("{context.obj[user].email}")
+
+        formats.append(" | ")
+        formats.append("{context.obj[user].uuid}")
+
+        formats.append(" ─╮")
+
+        formats.append("\n")
+
+        path = context.obj["explorer"].path
+        path = "/".join(path)
+
+        if path != "":
+            formats.append(" ")
+            formats.append(path)
+            formats.append(" ")
+
+        formats.append("─╯")
+
+        format_string = "".join(formats)
+
+        return format_string.format(context=context)
+
+    def build_completer(context):
+        return prompt_toolkit.completion.NestedCompleter.from_nested_dict({"exit": None})
+
+    explorer = context.obj["explorer"]
+    action = ""
+
+    history_path = explorer.repo_path / "user" / "HISTORY-{}".format(context.obj["user"].uuid)
+
+    while action != "exit":
+        action = prompt_toolkit.prompt(
+            build_prompt(context),
+            history=prompt_toolkit.history.FileHistory(history_path),
+            auto_suggest=prompt_toolkit.auto_suggest.AutoSuggestFromHistory(),
+            mouse_support=True,
+            complete_while_typing=True,
+            completer=build_completer(context),
+            rprompt=build_right_prompt(context),
+        )
+        print(action)
 
 
 @cli.command()
