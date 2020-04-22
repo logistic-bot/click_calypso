@@ -2,8 +2,9 @@
 """Implements Explorer"""
 
 from pathlib import Path
-from user import User
+
 from node import Node
+from user import User
 
 
 class Explorer:
@@ -63,6 +64,7 @@ class Explorer:
         return keys
 
     def change_data(self, new_value):
+        """Change the data in the current, at the current path, to NEW_VALUE"""
         pointer = self.current_node.data
         for key in self.path[:-1]:
             pointer = pointer[key]

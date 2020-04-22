@@ -8,6 +8,7 @@ It implements the `Node` class.
 
 import json
 from pathlib import Path
+# noinspection PyUnresolvedReferences,PyShadowingBuiltins
 from pprint import pprint as print  # pylint:disable=W0611,W0622 # noqa
 
 
@@ -40,7 +41,35 @@ class Node:
         """
         return self.data.keys()
 
+    @property
     def fields_dict(self):
+        """
+        Returns a dictionary of all the fields in the node, adding a leading slash to each field
+        that has subfields.
+
+        For each field that has subfields, the value will be a dictionary formatted the same way
+        than the returned dictionary, but with only the subfields of this filed.
+
+        Example:
+
+        For this data:
+        {
+            "test": "test",
+            "data": {
+                "more": "data"
+            }
+        }
+
+        it will produce the following output:
+
+        {
+            "test": None,
+            "data/": {
+                "more": None
+            }
+        }
+        """
+
         def strip_non_dict(data):
             return_data = {}
             for key, value in data.items():

@@ -15,19 +15,18 @@ This is where everything is launched.
 Nameing convention: all names wich start with CALYPSO_ are global.
 """
 
-from pathlib import Path
-
-from pprint import pprint as print  # pylint:disable=W0611,W0622 # noqa
-from pprint import pformat
-
-
-import subprocess
 import json
+import subprocess
+from pathlib import Path
+from pprint import pformat
+from pprint import pprint as print  # pylint:disable=W0611,W0622 # noqa
+
 import click
 import prompt_toolkit
 
-from user import User
 from explorer import Explorer
+from prompt import build_prompt, build_right_prompt, build_completer
+from user import User
 
 
 @click.group()
@@ -89,8 +88,12 @@ def cli(context, repo, user, email):
 @cli.command("list")  # avoid redefining builtin list
 @click.pass_context
 @click.option("--name", type=bool, help="Show node names", default=False, is_flag=True)
-@click.option("--no-uuid", type=bool, help="Show node uuids", default=True, is_flag=True)
-@click.option("--separator", type=str, help="Separator between atributes", default=" - ")
+@click.option(
+    "--no-uuid", type=bool, help="Show node uuids", default=True, is_flag=True
+)
+@click.option(
+    "--separator", type=str, help="Separator between atributes", default=" - "
+)
 @click.option(
     "--format-string",
     type=str,
@@ -129,11 +132,17 @@ def list_all(context, name, no_uuid, separator, format_string):
 @click.argument("node", type=str, envvar="CALYPSO_NODE")
 @click.argument("key", type=str, envvar="CALYPSO_KEY", default=None, required=False)
 @click.option(
-    "--indent", type=int, default=1, help="Indentation to use for showing nested values",
+    "--indent",
+    type=int,
+    default=1,
+    help="Indentation to use for showing nested values",
 )
 @click.option("--width", type=int, default=80, help="Max line width")
 @click.option(
-    "--depth", type=int, default=5, help="Max depth to print. Default 5. Set to -1 for infinite.",
+    "--depth",
+    type=int,
+    default=5,
+    help="Max depth to print. Default 5. Set to -1 for infinite.",
 )
 @click.option(
     "--no-sort-keys",
@@ -164,7 +173,13 @@ def read(context, node, key, indent, width, no_sort_keys, depth):
     explorer.go_to(node, key)
 
     click.echo(
-        pformat(explorer.get_path_data(), indent=indent, width=width, sort_dicts=sort, depth=depth,)
+        pformat(
+            explorer.get_path_data(),
+            indent=indent,
+            width=width,
+            sort_dicts=sort,
+            depth=depth,
+        )
     )
 
 
@@ -213,153 +228,12 @@ def repl(context):
     click.echo()
     click.echo("Type `exit` to quit.")
 
-    def build_prompt(context):
-        formats = []
-        formats.append("\n")
-
-        formats.append("╭─ ")
-
-        try:
-            name = context.obj["explorer"].current_node.data["name"]
-            formats.append("{context.obj[explorer].current_node.data[name]}")
-
-        except KeyError:
-            formats.append("(No name)")
-
-        formats.append(" | ")
-
-        try:
-            uuid = context.obj["explorer"].current_node.uuid
-            if uuid == "":
-                formats.append("(Empty uuid)")
-            else:
-                formats.append("{context.obj[explorer].current_node.uuid}")
-        except KeyError:
-            formats.append("(No uuid)")
-
-        formats.append("\n")
-        formats.append("╰─❯ ")
-
-        format_string = "".join(formats)
-
-        return format_string.format(context=context)
-
-    def build_right_prompt(context):
-        formats = []
-
-        formats.append("\n")
-
-        formats.append(" ")
-        formats.append("{context.obj[user].name}")
-
-        formats.append(" | ")
-        formats.append("{context.obj[user].email}")
-
-        formats.append(" | ")
-        formats.append("{context.obj[user].uuid}")
-
-        formats.append(" ─╮")
-
-        formats.append("\n")
-
-        path = context.obj["explorer"].path
-        path = "/".join(path)
-
-        if path != "":
-            formats.append(" ")
-            formats.append(path)
-            formats.append(" ")
-
-        formats.append("─╯")
-
-        format_string = "".join(formats)
-
-        return format_string.format(context=context)
-
-    def build_completer(context):
-        possible_keys = context.obj["explorer"].possible_keys()
-        possible_keys = {i: None for i in possible_keys}
-
-        possible_nodes_as_nodes = context.obj["explorer"].list_all()
-
-        possible_nodes = {}
-        for node in possible_nodes_as_nodes:
-            possible_nodes[node.uuid] = node.fields_dict()
-
-        possible_places = {}
-        possible_places.update(possible_keys)
-        possible_places.update(possible_nodes)
-
-        possible_places_keys = {}
-        possible_nodes_keys = {}
-        possible_keys_keys = {}
-
-        for key in possible_places:
-            possible_places_keys[key] = None
-        for key in possible_nodes:
-            possible_nodes_keys[key] = None
-        for key in possible_keys:
-            possible_keys_keys[key] = None
-
-        nested_dict = {
-            "exit": None,  # exit
-            "help": {  # summary help, or help for specified command
-                "": None,
-                "exit": None,
-                "help": None,
-                "ls": None,
-                "cd": None,
-                "cn": None,
-                "ck": None,
-                "e": None,
-                "edit": None,
-                "touch": None,
-                "mknode": None,
-            },
-            "ls": possible_places_keys,  # list all nodes, or top level keys from specified path
-            "cd": possible_places_keys,  # change into node, or key from specified path
-            "cn": possible_nodes_keys,  # change into node
-            "ck": possible_keys_keys,  # change into key
-            "e": None,  # edit current, or key from specified path
-            "edit": None,  # edit current, or key from specified path
-            "touch": None,  # create key with specified name
-            "mknode": None,  # create node with specified name, and print uuid
-        }
-
-        class MyCustomCompleter(prompt_toolkit.completion.Completer):
-            def __init__(self, places):
-                super().__init__()
-                self.places = places
-
-            def get_completions(self, document, complete_event):
-                places = self.places.copy()
-
-                words = document.text.split(" ")
-                words = words[1:]
-                words = "".join(words)
-                path_words = words.split("/")
-
-                for place in path_words:
-                    if place != "":
-                        places = places[place]
-
-                places = places.keys()
-
-                completer = prompt_toolkit.completion.WordCompleter(places)
-
-                return completer.get_completions(document, complete_event)
-
-        command_completer = prompt_toolkit.completion.NestedCompleter.from_nested_dict(nested_dict)
-        places_completer = MyCustomCompleter(possible_places)
-        completer = prompt_toolkit.completion.merge_completers(
-            [command_completer, places_completer]
-        )
-        return command_completer
-
     explorer = context.obj["explorer"]
     action = ""
 
-    history_path = explorer.repo_path / "user" / "HISTORY-{}".format(context.obj["user"].uuid)
+    history_path = (
+            explorer.repo_path / "user" / "HISTORY-{}".format(context.obj["user"].uuid)
+    )
 
     while action != "exit":
         action = prompt_toolkit.prompt(
