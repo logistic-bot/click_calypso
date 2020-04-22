@@ -294,11 +294,11 @@ def repl(context):
         possible_nodes_keys = {}
         possible_keys_keys = {}
 
-        for key, _ in possible_places:
+        for key in possible_places:
             possible_places_keys[key] = None
-        for key, _ in possible_nodes:
+        for key in possible_nodes:
             possible_nodes_keys[key] = None
-        for key, _ in possible_keys:
+        for key in possible_keys:
             possible_keys_keys[key] = None
 
         nested_dict = {
