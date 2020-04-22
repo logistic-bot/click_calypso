@@ -277,7 +277,84 @@ def repl(context):
         return format_string.format(context=context)
 
     def build_completer(context):
-        return prompt_toolkit.completion.NestedCompleter.from_nested_dict({"exit": None})
+        possible_keys = context.obj["explorer"].possible_keys()
+        possible_keys = {i: None for i in possible_keys}
+
+        possible_nodes_as_nodes = context.obj["explorer"].list_all()
+
+        possible_nodes = {}
+        for node in possible_nodes_as_nodes:
+            possible_nodes[node.uuid] = node.fields_dict()
+
+        possible_places = {}
+        possible_places.update(possible_keys)
+        possible_places.update(possible_nodes)
+
+        possible_places_keys = {}
+        possible_nodes_keys = {}
+        possible_keys_keys = {}
+
+        for key, _ in possible_places:
+            possible_places_keys[key] = None
+        for key, _ in possible_nodes:
+            possible_nodes_keys[key] = None
+        for key, _ in possible_keys:
+            possible_keys_keys[key] = None
+
+        nested_dict = {
+            "exit": None,  # exit
+            "help": {  # summary help, or help for specified command
+                "": None,
+                "exit": None,
+                "help": None,
+                "ls": None,
+                "cd": None,
+                "cn": None,
+                "ck": None,
+                "e": None,
+                "edit": None,
+                "touch": None,
+                "mknode": None,
+            },
+            "ls": possible_places_keys,  # list all nodes, or top level keys from specified path
+            "cd": possible_places_keys,  # change into node, or key from specified path
+            "cn": possible_nodes_keys,  # change into node
+            "ck": possible_keys_keys,  # change into key
+            "e": None,  # edit current, or key from specified path
+            "edit": None,  # edit current, or key from specified path
+            "touch": None,  # create key with specified name
+            "mknode": None,  # create node with specified name, and print uuid
+        }
+
+        class MyCustomCompleter(prompt_toolkit.completion.Completer):
+            def __init__(self, places):
+                super().__init__()
+                self.places = places
+
+            def get_completions(self, document, complete_event):
+                places = self.places.copy()
+
+                words = document.text.split(" ")
+                words = words[1:]
+                words = "".join(words)
+                path_words = words.split("/")
+
+                for place in path_words:
+                    if place != "":
+                        places = places[place]
+
+                places = places.keys()
+
+                completer = prompt_toolkit.completion.WordCompleter(places)
+
+                return completer.get_completions(document, complete_event)
+
+        command_completer = prompt_toolkit.completion.NestedCompleter.from_nested_dict(nested_dict)
+        places_completer = MyCustomCompleter(possible_places)
+        completer = prompt_toolkit.completion.merge_completers(
+            [command_completer, places_completer]
+        )
+        return command_completer
 
     explorer = context.obj["explorer"]
     action = ""
@@ -294,6 +371,7 @@ def repl(context):
             completer=build_completer(context),
             rprompt=build_right_prompt(context),
         )
+
         print(action)
 
 

@@ -8,6 +8,7 @@ It implements the `Node` class.
 
 import json
 from pathlib import Path
+from pprint import pprint as print  # pylint:disable=W0611,W0622 # noqa
 
 
 class Node:
@@ -38,6 +39,19 @@ class Node:
         Returns all the top-level fields of the node.
         """
         return self.data.keys()
+
+    def fields_dict(self):
+        def strip_non_dict(data):
+            return_data = {}
+            for key, value in data.items():
+                if isinstance(value, dict):
+                    return_data[key + "/"] = strip_non_dict(value)
+                else:
+                    return_data[key] = None
+
+            return return_data
+
+        return strip_non_dict(self.data)
 
     def save(self):
         """Saves the node's data to the file.
