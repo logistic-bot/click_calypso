@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 #####################################################
 #    mmm    mm   m     m     m mmmmm   mmmm   mmmm  #
@@ -11,8 +11,6 @@
 """
 This is the main file from Calypso.
 This is where everything is launched.
-
-Nameing convention: all names wich start with CALYPSO_ are global.
 """
 
 import json
@@ -23,10 +21,15 @@ from pprint import pprint as print  # pylint:disable=W0611,W0622 # noqa
 
 import click
 import prompt_toolkit
+import structlog
 
 from explorer import Explorer
 from prompt import build_prompt, build_right_prompt, build_completer
 from user import User
+
+logger = structlog.get_logger()
+
+logger.debug("Calypso Started!!")
 
 
 @click.group()
@@ -56,24 +59,24 @@ from user import User
 def cli(context, repo, user, email):
     """Allows interactions with the REPO Calypso repository.
 
-    An user consits of an username and an associated email. It is used to help
+    An user consists of an username and an associated email. It is used to help
     denote who did what, but is in NO WAY secure, as-in it has NO PASSWORD, not
     even plain-text stored.
     """
 
-    # setup primary vars
+    log = logger.new(command="cli", context=context.obj, repo=repo, user=user, email=email)
+
+    # setup vars
     repo = Path(repo).expanduser().resolve()
-
-    # setup secondary vars
     userpath = repo / "user"
-
-    # setup tretary vars
     current_user = User(user, email, userpath)
-
-    # setup quadrenary vars
     explorer = Explorer(repo, current_user)
 
+    log.debug("Setting Repo Path", repopath=repo)
+    log.debug("setting user path", userpath=userpath)
+
     # login user
+    log.info("Logging in")
     current_user.login()
 
     # ensure the context object is a dict
@@ -89,10 +92,10 @@ def cli(context, repo, user, email):
 @click.pass_context
 @click.option("--name", type=bool, help="Show node names", default=False, is_flag=True)
 @click.option(
-    "--no-uuid", type=bool, help="Show node uuids", default=True, is_flag=True
+    "--uuid/--no-uuid", type=bool, help="Show node uuids", default=True, is_flag=True
 )
 @click.option(
-    "--separator", type=str, help="Separator between atributes", default=" - "
+    "--separator", type=str, help="Separator between attributes", default=" - "
 )
 @click.option(
     "--format-string",
@@ -100,32 +103,47 @@ def cli(context, repo, user, email):
     help="Format string. If specified, --name, --uuid and --separator are ignored. NOT IMPLEMENTED",
     default=None,
 )
-def list_all(context, name, no_uuid, separator, format_string):
+def list_all(context, name, uuid, separator, format_string):
     """List all the nodes."""
+
     # setup vars
     explorer = context.obj["explorer"]
     nodes = explorer.list_all()
 
+    log = logger.new(name=name, uuid=uuid, separator=separator,
+                     format_string=format_string, command="list")
+
+    log.debug("Nodes", nodes=nodes)
+
     if format_string is None:
+        log.info("Using default format options -- no format string was provided")
         formats = []
 
-        if no_uuid:
+        if uuid:
+            log.debug("Adding uuid info")
             formats.append("{node.uuid}")
         if name:
+            log.debug("Adding name info")
             formats.append("{node.data[name]}")
 
         format_string = ""
-        for formet_str in formats:
-            format_string += formet_str
+        for format_str in formats:
+            format_string += format_str
 
-            if not formats.index(formet_str) == len(formats) - 1:
+            if not formats.index(format_str) == len(formats) - 1:
                 format_string += separator
     else:
-        raise NotImplementedError("Sorry about that")
+        log.critical("This feature is not implemented!")
+        raise NotImplementedError("Sorry about that")  # TODO
 
     # run
+    log.debug("Starting output")
     for node in nodes:
-        click.echo(format_string.format(node=node))
+        output = format_string.format(node=node)
+
+        log.debug("printing node", node=node, output=output)
+
+        click.echo(output)
 
 
 @cli.command()
@@ -145,14 +163,14 @@ def list_all(context, name, no_uuid, separator, format_string):
     help="Max depth to print. Default 5. Set to -1 for infinite.",
 )
 @click.option(
-    "--no-sort-keys",
+    "--sort-keys/--no-sort-keys",
     type=bool,
     default=False,
     help="Do not sort keys in output",
     is_flag=True,  # pylint:disable=R0913
 )  # pylint:disable=R0913
 @click.pass_obj
-def read(context, node, key, indent, width, no_sort_keys, depth):
+def read(context, node, key, indent, width, sort_keys, depth):
     """Either reads the whole NODE or the KEY from the NODE.
 
     NODE is the uuid of the node to read from. Example:
@@ -164,23 +182,34 @@ def read(context, node, key, indent, width, no_sort_keys, depth):
     (`creator////email`) also works, but is considered ugly.
 
     """
-    sort = not no_sort_keys
+    log = logger.new(node=node, key=key,
+                     command="read")
+    log.debug("indent", indent=indent)
+    log.debug("width", width=width)
+    log.debug("sort_keys", sort_keys=sort_keys)
+    log.debug("depth", depth=depth)
+
     explorer = context["explorer"]
 
     if depth == -1:
+        log.debug("Infinite depth")
         depth = None
 
+    log.debug("Going to specified node and key")
     explorer.go_to(node, key)
 
+    log.debug("Echoing data")
     click.echo(
         pformat(
             explorer.get_path_data(),
             indent=indent,
             width=width,
-            sort_dicts=sort,
+            sort_dicts=sort_keys,
             depth=depth,
         )
     )
+
+    log.debug("Done with reading data")
 
 
 @cli.command()
@@ -192,30 +221,43 @@ def read(context, node, key, indent, width, no_sort_keys, depth):
 )
 def edit(context, node, key, editor):
     """Edits a key in a node."""
+
+    log = logger.new(node=node, key=key, command="edit")
+    log.debug("editor", editor=editor)
+
+    log.info("Going to specified node and key")
     explorer = context["explorer"]
     explorer.go_to(node, key)
 
     filepath = context[
-        "repo"
-    ] / "DATA-EDIT-IN-PROGRESS-BY-{}-ON-NODE-{}--DO-NOT-DELETE.json".format(
+                   "repo"
+               ] / "DATA-EDIT-IN-PROGRESS-BY-{}-ON-NODE-{}--DO-NOT-DELETE.json".format(
         context["user"].name, node
     )
+    log.info("Creating temp file", filepath=filepath)
+    log.info("Writing to temp file")
 
     with open(filepath, "w") as tmp_file:
         tmp_file.write(json.dumps(explorer.get_path_data(), indent=2, sort_keys=True))
         tmp_file.flush()
 
-        proc = subprocess.Popen("{} {}".format(editor, tmp_file.name), shell=True)
-        proc.communicate()
-        proc.wait()
+    log.info("launching editor")
+    proc = subprocess.Popen("{} {}".format(editor, tmp_file.name), shell=True)
+    proc.communicate()
+    proc.wait()
 
+    log.debug("Editor exited, reading data")
     with open(filepath, "r") as tmp_file:
         data = json.load(tmp_file)
 
+        log.debug("Writing read data to node")
         explorer.change_data(data)
 
+    log.info("Deleting file")
     # delete the file
     filepath.unlink()
+
+    log.info("Editing done")
 
 
 @cli.command()
@@ -224,6 +266,10 @@ def repl(context):
     """
     Starts an interactive read-eval-print loop.
     """
+
+    log = logger.new(command="repl")
+    log.info("Invoking version command")
+
     context.invoke(version)
     click.echo()
     click.echo("Type `exit` to quit.")
@@ -234,8 +280,12 @@ def repl(context):
     history_path = (
             explorer.repo_path / "user" / "HISTORY-{}".format(context.obj["user"].uuid)
     )
+    log.debug("history_path", history_path=history_path)
+
+    log.info("Starting loop")
 
     while action != "exit":
+        log.debug("Waiting for input...")
         action = prompt_toolkit.prompt(
             build_prompt(context),
             history=prompt_toolkit.history.FileHistory(history_path),
@@ -245,16 +295,26 @@ def repl(context):
             completer=build_completer(context),
             rprompt=build_right_prompt(context),
         )
+        log.debug("Got input", input=action)
 
         print(action)
+
+    log.info("Exited loop")
+    log.info("Exited repl command")
 
 
 @cli.command()
 def version():
     """Prints version and copyright information"""
+
+    log = logger.new(command="version")
+    log.debug("Giving version info")
+
     click.echo("You are using CALYPSO, originally coded by Khaïs COLIN.")
     click.echo("Copyright: GNU GPL 3.0")
     click.echo("Calypso v2.3.0 `Scatter`")
+
+    log.debug("End of version command")
 
 
 if __name__ == "__main__":
